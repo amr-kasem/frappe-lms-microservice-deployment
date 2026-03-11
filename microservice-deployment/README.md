@@ -1,20 +1,26 @@
-# Microservice deployment (testing)
+# Microservice Deployment
 
-How to run the LMS stack for **testing** using Docker Compose: backend (Frappe + LMS), standalone frontend, mock userprofile service, MariaDB, Redis, and nginx as gateway.
+Docker Compose–based deployment for testing the LMS stack: Frappe backend with [Frappe LMS](https://github.com/frappe/lms), standalone frontend SPA, mock userprofile service, MariaDB, Redis, and nginx as the gateway.
 
 ---
 
-## Required project directory structure
+## Requirements
 
-From the **repository root**, the following must exist for **building**:
+- Docker and Docker Compose
+- This repository cloned so that `frappe-lms-separate-frontend/` and `microservice-deployment/` exist under the repository root
+
+---
+
+## Repository layout
+
+Build expects the following under the repository root:
 
 ```
 <repo-root>/
 ├── frappe-lms-separate-frontend/
-│   └── frontend/                 # Standalone frontend SPA
-│       ├── package.json
-│       ├── yarn.lock
+│   └── frontend/              # Standalone frontend (Vue/Vite)
 │       ├── frontend.Dockerfile
+│       ├── package.json
 │       └── ...
 └── microservice-deployment/
     └── test/
@@ -31,46 +37,65 @@ From the **repository root**, the following must exist for **building**:
         └── ...
 ```
 
-- **Backend** is built from repo root; **Frappe LMS** (https://github.com/frappe/lms) is cloned during build.
-- **Frontend** is built from repo root using `frappe-lms-separate-frontend/frontend/frontend.Dockerfile`.
-- You do **not** need the LMS app on disk; it is cloned from GitHub at image build time.
+- **Backend image:** Built from repo root; [Frappe LMS](https://github.com/frappe/lms) is cloned during build. The LMS app is not required on the host.
+- **Frontend image:** Built from repo root via `frappe-lms-separate-frontend/frontend/frontend.Dockerfile`.
 
 ---
 
-## Steps to deploy (testing)
+## Deployment
 
-1. **Prerequisites**
-   - Docker and Docker Compose installed.
-   - Clone or open the repo so the structure above exists at your workspace root (frontend + microservice-deployment/test).
+From the repository root:
 
-2. **Run from repository root**
-   ```bash
-   cd /path/to/<repo-root>
-   docker compose -f microservice-deployment/test/docker-compose.yml up -d --build
-   ```
+```bash
+docker compose -f microservice-deployment/test/docker-compose.yml up -d --build
+```
 
-3. **First run**
-   - Backend performs `bench init`, installs `payments`, `lms`, `frappe_gateway_auth`, creates site `lms.test`, and configures gateway-auth. This can take several minutes (backend healthcheck has a long start period).
-   - Check progress: `docker compose -f microservice-deployment/test/docker-compose.yml logs -f backend`
+**First run:** The backend runs `bench init`, installs `payments`, `lms`, and `frappe_gateway_auth`, creates the site `lms.test`, and applies gateway-auth configuration. Allow several minutes; the backend healthcheck uses a long start period. To follow logs:
 
-4. **Access**
-   - **Gateway (nginx):** http://localhost:8080  
-   - **Frontend:** http://localhost:8080/services/lms/frontend/  
-   - **Backend API:** http://localhost:8080/services/lms/backend/  
-   - Root `/` redirects to `/services/lms/frontend/`.
+```bash
+docker compose -f microservice-deployment/test/docker-compose.yml logs -f backend
+```
 
-5. **Stop**
-   ```bash
-   docker compose -f microservice-deployment/test/docker-compose.yml down
-   ```
-   Data in `mariadb-data` and `bench-data` volumes is kept. Add `-v` to remove volumes.
+**Stop (keep data):**
+
+```bash
+docker compose -f microservice-deployment/test/docker-compose.yml down
+```
+
+Add `-v` to remove named volumes and delete data.
 
 ---
 
-## Test config summary
+## Endpoints
 
-- **Site:** `lms.test` (admin password: `admin`).
-- **MariaDB root password:** `123`.
-- **Gateway auth:** Mock userprofile at `http://userprofile:8000`; nginx injects `X-User-Id: test-user-uuid-001` on backend requests.
-- **Frontend** reads `config.json` (mounted from `test/config.json`) for API base URL, app base path, and socket.io URL.
-# frappe-lms-microservice-deployment
+| Purpose    | URL |
+|-----------|-----|
+| Gateway   | http://localhost:8080 |
+| Frontend  | http://localhost:8080/services/lms/frontend/ |
+| Backend API | http://localhost:8080/services/lms/backend/ |
+
+Requests to `/` are redirected to `/services/lms/frontend/`.
+
+---
+
+## Test configuration
+
+| Item | Value |
+|------|--------|
+| Site | `lms.test` |
+| Admin password | `admin` |
+| MariaDB root password | `123` |
+| Gateway auth | Mock userprofile at `http://userprofile:8000`; nginx adds `X-User-Id: test-user-uuid-001` to backend requests |
+| Frontend config | `config.json` (mounted from `test/config.json`): API base URL, app base path, Socket.IO URL |
+
+---
+
+## License
+
+Copyright (C) 2025.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the **GNU Affero General Public License** as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.html) for more details.
+
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
