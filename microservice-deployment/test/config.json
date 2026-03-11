@@ -1,0 +1,5 @@
+{
+  "api_base_url": "http://localhost:8080/services/lms/backend",
+  "app_base_path": "/services/lms/frontend/",
+  "socketio_url": "/services/lms/socket.io"
+}

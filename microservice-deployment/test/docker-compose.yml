@@ -1,0 +1,79 @@
+services:
+  # ─── Infrastructure ──────────────────────────────────────────
+  mariadb:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: "123"
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── Mock userprofile service ────────────────────────────────
+  userprofile:
+    build:
+      context: ./userprofile
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── Frappe backend ──────────────────────────────────────────
+  backend:
+    build:
+      context: ../../
+      dockerfile: microservice-deployment/test/backend.Dockerfile
+    volumes:
+      - bench-data:/home/frappe/frappe-bench
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      userprofile:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/method/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 300s
+
+  # ─── Standalone frontend ─────────────────────────────────────
+  frontend:
+    build:
+      context: ../../
+      dockerfile: frappe-lms-separate-frontend/frontend/frontend.Dockerfile
+    volumes:
+      - ./config.json:/etc/lms/config.json:ro
+
+  # ─── Gateway (nginx) ─────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+volumes:
+  mariadb-data:
+  bench-data:
