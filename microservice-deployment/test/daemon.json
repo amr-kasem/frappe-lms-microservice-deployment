@@ -1,0 +1,11 @@
+{
+  "dns": ["8.8.8.8", "8.8.4.4"],
+  "ipv6": false,
+  "insecure-registries": ["10.93.209.250:5000"],
+  "runtimes": {
+    "nvidia": {
+      "args": [],
+      "path": "nvidia-container-runtime"
+    }
+  }
+}

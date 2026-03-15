@@ -18,8 +18,14 @@ fi
 # Clean up any partial install (can't rm the mountpoint itself)
 rm -rf /home/frappe/frappe-bench/*
 
-echo "=== Creating new bench ==="
-bench init --skip-redis-config-generation --ignore-exist frappe-bench
+echo "=== Configuring bench ==="
+# Bench was pre-initialised and apps were installed at image build time.
+# Copy the pre-built bench from the image into the volume (only on first run).
+if [ ! -d "/home/frappe/frappe-bench/apps/frappe" ]; then
+    echo "Populating volume from image..."
+    cp -a /home/frappe/frappe-bench-image/. /home/frappe/frappe-bench/
+fi
+
 cd frappe-bench
 
 # Point to container services
@@ -32,17 +38,8 @@ bench set-redis-socketio-host redis://redis:6379
 sed -i '/redis/d' ./Procfile
 sed -i '/watch/d' ./Procfile
 
-# Install payments (LMS dependency)
-bench get-app payments
-
-# Install Frappe LMS (cloned at build; app at repo root)
-bench get-app /workspace/lms
-
-# Install gateway-auth from remote (skip assets — no frontend)
-bench get-app --skip-assets https://github.com/amr-kasem/frappe-gateway-auth.git
-# Ensure it's registered in apps.txt (--skip-assets can skip this)
+# Ensure gateway-auth is in apps.txt (--skip-assets can omit it)
 if ! grep -q frappe_gateway_auth sites/apps.txt; then
-    # Ensure trailing newline before appending
     sed -i -e '$a\' sites/apps.txt
     echo "frappe_gateway_auth" >> sites/apps.txt
 fi

@@ -26,6 +26,7 @@ services:
   userprofile:
     build:
       context: ./userprofile
+      network: host
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
@@ -36,8 +37,9 @@ services:
   backend:
     build:
       context: ../../
+      network: host
       dockerfile: microservice-deployment/test/backend.Dockerfile
-    volumes:
+    volumes:      
       - bench-data:/home/frappe/frappe-bench
     depends_on:
       mariadb:
@@ -57,6 +59,7 @@ services:
   frontend:
     build:
       context: ../../
+      network: host
       dockerfile: frappe-lms-separate-frontend/frontend/frontend.Dockerfile
     volumes:
       - ./config.json:/etc/lms/config.json:ro
