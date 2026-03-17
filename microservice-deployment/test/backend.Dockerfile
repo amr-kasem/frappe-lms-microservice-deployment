@@ -3,16 +3,28 @@ FROM frappe/bench:latest
 # Switch to root for setup
 USER root
 
-# Clone Frappe LMS at build time (app at repo root).
-RUN git clone --depth 1 -b main https://github.com/frappe/lms.git /workspace/lms
+# Clone all GitHub apps at build time as root (network: host is reliable here).
+RUN for i in 1 2 3; do \
+      git clone --depth 1 -b main https://github.com/frappe/lms.git /workspace/lms && break \
+      || (echo "lms clone attempt $i failed, retrying..." && rm -rf /workspace/lms && sleep 5); \
+    done \
+ && for i in 1 2 3; do \
+      git clone --depth 1 https://github.com/frappe/payments.git /workspace/payments && break \
+      || (echo "payments clone attempt $i failed, retrying..." && rm -rf /workspace/payments && sleep 5); \
+    done \
+ && for i in 1 2 3; do \
+      git clone --depth 1 https://github.com/amr-kasem/frappe-gateway-auth.git /workspace/frappe-gateway-auth && break \
+      || (echo "frappe-gateway-auth clone attempt $i failed, retrying..." && rm -rf /workspace/frappe-gateway-auth && sleep 5); \
+    done
 
-# Copy scripts
+# Copy scripts and health app
 COPY microservice-deployment/test/init-backend.sh /workspace/init-backend.sh
 COPY microservice-deployment/test/entrypoint.sh /workspace/entrypoint.sh
+COPY microservice-deployment/test/health /workspace/health
 RUN chmod +x /workspace/init-backend.sh /workspace/entrypoint.sh
 
-# Hand off lms clone to frappe so git doesn't reject it as dubious ownership.
-RUN chown -R frappe:frappe /workspace/lms
+# Hand off all cloned apps to frappe so git doesn't reject dubious ownership.
+RUN chown -R frappe:frappe /workspace/lms /workspace/health /workspace/payments /workspace/frappe-gateway-auth
 
 # Pre-initialise bench and install all apps at build time (network: host in
 # compose build context gives reliable connectivity; avoids runtime internet
@@ -26,9 +38,10 @@ RUN for i in 1 2 3; do \
       || (echo "bench init attempt $i failed, retrying..." && rm -rf /home/frappe/frappe-bench-image && sleep 5); \
     done \
  && cd /home/frappe/frappe-bench-image \
- && bench get-app payments \
+ && bench get-app /workspace/payments \
  && bench get-app /workspace/lms \
- && bench get-app --skip-assets https://github.com/amr-kasem/frappe-gateway-auth.git
+ && bench get-app /workspace/health \
+ && bench get-app --skip-assets /workspace/frappe-gateway-auth
 
 USER root
 ENTRYPOINT ["/workspace/entrypoint.sh"]
