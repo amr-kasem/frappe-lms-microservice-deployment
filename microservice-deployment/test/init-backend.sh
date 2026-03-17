@@ -53,6 +53,11 @@ bench new-site "$SITE_NAME" \
 
 bench --site "$SITE_NAME" install-app lms
 bench --site "$SITE_NAME" install-app frappe_gateway_auth
+bench --site "$SITE_NAME" install-app payments
+bench --site "$SITE_NAME" install-app health
+
+# Ensure installed_apps is in site_config (newer Frappe may not write it automatically)
+bench --site "$SITE_NAME" set-config installed_apps '["frappe","lms","frappe_gateway_auth","payments","health"]' --parse-json
 
 # Configure site for gateway auth
 bench --site "$SITE_NAME" set-config ignore_csrf 1
