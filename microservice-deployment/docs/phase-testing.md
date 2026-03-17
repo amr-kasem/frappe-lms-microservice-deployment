@@ -17,13 +17,13 @@ what the API gateway does in production.
 docker compose up
   │
   ├── nginx (port 8080)
-  │     ├── /services/lms/app/*  → frontend container (port 80)
-  │     ├── /services/lms/api/*  → backend container (port 8000)
-  │     │     strips /services/lms/api prefix before forwarding
+  │     ├── /services/lms/frontend/*  → frontend container (port 80)
+  │     ├── /services/lms/backend/*   → backend container (port 8000)
+  │     │     strips /services/lms/backend prefix, prepends /api/ before forwarding
   │     └── injects X-User-Id header on all proxied requests to backend
   │
   ├── frontend (nginx serving Vite standalone build)
-  │     └── serves /config.json pointing to http://nginx:8080/services/lms/api
+  │     └── serves /config.json pointing to http://localhost:8080/services/lms/backend
   │
   ├── backend (Frappe + LMS + frappe-gateway-auth)
   │     └── trusts X-User-Id header, provisions users via /userprofile
@@ -40,8 +40,8 @@ docker compose up
 
 - Listens on port `8080`
 - Routes:
-  - `/services/lms/app/*` → `frontend:80` (strip prefix)
-  - `/services/lms/api/*` → `backend:8000` (strip prefix)
+  - `/services/lms/frontend/*` → `frontend:80` (strip prefix)
+  - `/services/lms/backend/*` → `backend:8000` (strip prefix, prepend `/api/`)
 - Injects headers on all backend-bound requests:
   - `X-User-Id: test-user-uuid-001`
 - Does NOT inject headers on frontend-bound requests (frontend is static)
@@ -53,9 +53,9 @@ docker compose up
 - `/config.json` mounted via volume:
   ```json
   {
-    "api_base_url": "http://localhost:8080/services/lms/api",
-    "app_base_path": "/services/lms/app/",
-    "socketio_url": ""
+    "api_base_url": "http://localhost:8080/services/lms/backend",
+    "app_base_path": "/services/lms/frontend/",
+    "socketio_url": "/services/lms/socket.io"
   }
   ```
 
@@ -102,7 +102,7 @@ The nginx-injected `X-User-Id` and the userprofile response must be consistent:
 ## Test Cases
 
 ### T1 — First Request: JIT User Provisioning
-1. Open browser to `http://localhost:8080/services/lms/app/`
+1. Open browser to `http://localhost:8080/services/lms/frontend/`
 2. nginx injects `X-User-Id: test-user-uuid-001` on backend requests
 3. Frappe auth hook reads header, user not found, calls userprofile mock
 4. Shadow user created: `testuser@example.com`, username=`test-user-uuid-001`
@@ -130,7 +130,7 @@ The nginx-injected `X-User-Id` and the userprofile response must be consistent:
 **Verify:** Course listing, settings, branding all load correctly.
 
 ### T5 — Role Sync Webhook
-1. POST to `http://localhost:8080/services/lms/api/api/method/frappe_gateway_auth.api.sync_user_roles`
+1. POST to `http://localhost:8080/services/lms/backend/method/frappe_gateway_auth.api.sync_user_roles`
    with `{"user_id": "test-user-uuid-001"}`
 2. Frappe re-fetches /userprofile, syncs roles
 
@@ -138,13 +138,13 @@ The nginx-injected `X-User-Id` and the userprofile response must be consistent:
 roles and re-test to verify diff-based sync.
 
 ### T6 — Health Check Bypass
-1. `curl http://localhost:8080/services/lms/api/api/method/ping`
+1. `curl http://localhost:8080/services/lms/backend/method/health.api.ping`
    (without X-User-Id header manually — but nginx adds it anyway)
 
 **Verify:** Returns `{"message": "pong"}`.
 
 ### T7 — SPA Routing
-1. Navigate directly to `http://localhost:8080/services/lms/app/courses`
+1. Navigate directly to `http://localhost:8080/services/lms/frontend/courses`
 2. nginx serves `index.html` via try_files fallback
 3. Vue Router handles the route client-side
 
@@ -174,8 +174,21 @@ docker/test/
 ```bash
 cd docker/test
 docker compose up --build
-# Open http://localhost:8080/services/lms/app/
+# Open http://localhost:8080/services/lms/frontend/
 ```
+
+---
+
+## Default Test Credentials
+
+| Identity | Value |
+|----------|-------|
+| Default injected user (nginx) | `X-User-Id: test-user-uuid-001` |
+| Frappe admin password | `admin` |
+| MariaDB root password | `123` |
+| Frappe site | `lms.test` |
+
+Switch active user via query param: `http://localhost:8080/services/lms/frontend/?user_id=seeder-student-uuid-005`
 
 ---
 
