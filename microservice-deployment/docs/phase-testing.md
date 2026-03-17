@@ -155,10 +155,9 @@ roles and re-test to verify diff-based sync.
 ## File Structure
 
 ```
-docker/test/
+microservice-deployment/test/
 ├── docker-compose.yml
 ├── nginx.conf
-├── frontend.Dockerfile
 ├── backend.Dockerfile
 ├── userprofile/
 │   ├── Dockerfile
@@ -167,12 +166,15 @@ docker/test/
 └── config.json
 ```
 
+> Note: `frontend.Dockerfile` is not in this directory — it lives at
+> `frappe-lms-separate-frontend/frontend/frontend.Dockerfile`.
+
 ---
 
 ## Usage
 
 ```bash
-cd docker/test
+cd microservice-deployment/test
 docker compose up --build
 # Open http://localhost:8080/services/lms/frontend/
 ```
