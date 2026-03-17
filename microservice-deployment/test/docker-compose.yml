@@ -39,8 +39,9 @@ services:
       context: ../../
       network: host
       dockerfile: microservice-deployment/test/backend.Dockerfile
-    volumes:      
+    volumes:
       - bench-data:/home/frappe/frappe-bench
+      - ./init-backend.sh:/workspace/init-backend.sh:ro
     depends_on:
       mariadb:
         condition: service_healthy
@@ -49,7 +50,7 @@ services:
       userprofile:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/method/ping"]
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/method/health.api.ping"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -63,6 +64,23 @@ services:
       dockerfile: frappe-lms-separate-frontend/frontend/frontend.Dockerfile
     volumes:
       - ./config.json:/etc/lms/config.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  # ─── One-shot data seeder ────────────────────────────────────
+  seeder:
+    build:
+      context: ../../
+      network: host
+      dockerfile: microservice-deployment/test/seeder/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: "no"
 
   # ─── Gateway (nginx) ─────────────────────────────────────────
   nginx:
@@ -75,7 +93,7 @@ services:
       backend:
         condition: service_healthy
       frontend:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   mariadb-data:
