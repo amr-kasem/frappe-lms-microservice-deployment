@@ -194,6 +194,22 @@ Switch active user via query param: `http://localhost:8080/services/lms/frontend
 
 ---
 
+## Known Limitations
+
+### Seeder timeout on first cold boot
+The seeder polls the backend for up to 150 seconds (30 retries × 5s). The backend's
+`start_period` allows up to 300 seconds before health check failures are counted.
+On a slow first boot (cold image pull, slow MariaDB init), the seeder may time out
+before the backend is ready.
+
+**Workaround:** Re-run the seeder manually after the backend becomes healthy:
+
+```bash
+docker compose run --rm seeder
+```
+
+---
+
 ## Definition of Done (Testing Phase)
 
 - [ ] All 4 containers start and are healthy
