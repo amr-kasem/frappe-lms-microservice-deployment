@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose:*)",
+      "Bash(curl -s -H 'Host: lms.test' -H 'X-User-Id: seeder-admin-uuid-001' http://localhost:8080/services/lms/backend/method/frappe.client.get_list -G --data-urlencode doctype=DocField --data-urlencode 'filters=[[\"\"\"\"parent\"\"\"\",\"\"\"\"=\"\"\"\",\"\"\"\"LMS Course\"\"\"\"],[\"\"\"\"reqd\"\"\"\",\"\"\"\"=\"\"\"\",1]]' --data-urlencode fields=[\"\"fieldname\"\",\"\"fieldtype\"\",\"\"label\"\",\"\"options\"\"] --data-urlencode limit_page_length=50)",
+      "Bash(curl -s http://localhost:8080/services/lms/backend/method/frappe.auth.get_logged_user)",
+      "Bash(sleep 2 __NEW_LINE_791e875e6f258da5__ echo \"=== Default \\(no cookie, no param\\) ===\" curl -s http://localhost:8080/services/lms/backend/method/frappe.auth.get_logged_user __NEW_LINE_791e875e6f258da5__ echo \"\" echo \"=== With ?user_id param ===\" curl -s \"http://localhost:8080/services/lms/backend/method/frappe.auth.get_logged_user?user_id=seeder-instructor-uuid-003\" __NEW_LINE_791e875e6f258da5__ echo \"\" echo \"=== With cookie ===\" curl -s -b \"user_id=seeder-student-uuid-001\" http://localhost:8080/services/lms/backend/method/frappe.auth.get_logged_user __NEW_LINE_791e875e6f258da5__ echo \"\" echo \"=== Cookie set on frontend, used on backend ===\" curl -sv http://localhost:8080/services/lms/frontend/?user_id=seeder-student-uuid-005)",
+      "Bash(2)"
+    ]
+  }
+}

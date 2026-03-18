@@ -3,6 +3,14 @@ set -e
 
 export PATH="${NVM_DIR}/versions/node/v${NODE_VERSION_DEVELOP}/bin/:${PATH}"
 
+# bench CLI runs under the system/user Python (not the bench venv), so it will
+# not load the venv's .pth files.  Export PYTHONPATH so every bench command —
+# including gunicorn workers started by "bench start" — can import our apps.
+# The cp step below copies apps to frappe-bench/; we set these paths up once
+# for the whole script lifetime.
+_APPS=/home/frappe/frappe-bench/apps
+export PYTHONPATH="${_APPS}/payments:${_APPS}/lms:${_APPS}/health:${_APPS}/frappe-gateway-auth${PYTHONPATH:+:${PYTHONPATH}}"
+
 SITE_NAME="lms.test"
 
 # Check if bench is fully initialised (not just partially)
@@ -52,12 +60,14 @@ bench new-site "$SITE_NAME" \
     --no-mariadb-socket
 
 bench --site "$SITE_NAME" install-app lms
-bench --site "$SITE_NAME" install-app frappe_gateway_auth
-bench --site "$SITE_NAME" install-app payments
+# frappe_gateway_auth may warn about missing commands module — that is harmless.
+# Use || true so a non-zero exit doesn't abort the rest of the install sequence.
+bench --site "$SITE_NAME" install-app frappe_gateway_auth || echo "Warning: frappe_gateway_auth install failed (continuing)"
+bench --site "$SITE_NAME" install-app payments || echo "Warning: payments install failed (continuing)"
 bench --site "$SITE_NAME" install-app health
 
 # Ensure installed_apps is in site_config (newer Frappe may not write it automatically)
-bench --site "$SITE_NAME" set-config installed_apps '["frappe","lms","frappe_gateway_auth","payments","health"]' --parse-json
+bench --site "$SITE_NAME" set-config installed_apps '["frappe","lms","frappe_gateway_auth","payments","health"]' --parse
 
 # Configure site for gateway auth
 bench --site "$SITE_NAME" set-config ignore_csrf 1

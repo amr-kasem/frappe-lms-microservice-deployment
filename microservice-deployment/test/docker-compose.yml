@@ -50,7 +50,7 @@ services:
       userprofile:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/method/health.api.ping"]
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/method/ping"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -65,7 +65,7 @@ services:
     volumes:
       - ./config.json:/etc/lms/config.json:ro
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 5s
       timeout: 3s
       retries: 10

@@ -1,0 +1,9 @@
+[project]
+name = "health"
+version = "1.0.0"
+description = "Health check ping for Frappe backend"
+requires-python = ">=3.10"
+dependencies = ["frappe"]
+
+[tool.bench]
+app = "health"

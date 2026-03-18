@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "docfork": {
+      "type": "remote",
+      "url": "https://mcp.docfork.com/mcp",
+      "headers": {
+        "DOCFORK_API_KEY": "docf_3vBAURkkzjEh6uDk1g8pa5ZtFSmP15SyWm8KfvBPcf6junazJho1v3C"
+      }
+    }
+  }
+}
