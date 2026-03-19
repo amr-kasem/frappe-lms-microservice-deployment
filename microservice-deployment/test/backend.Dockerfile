@@ -16,7 +16,7 @@ RUN for i in 1 2 3; do \
 RUN cd /home/frappe/frappe-bench-image \
  && bench get-app --skip-assets https://github.com/frappe/payments.git \
  && bench get-app --branch main https://github.com/frappe/lms.git \
- && bench get-app --skip-assets https://github.com/amr-kasem/frappe-gateway-auth.git
+ && bench get-app --branch main https://github.com/amr-kasem/frappe-gateway-auth.git
 
 # Install the local health app — copy it into apps/ and wire it up manually
 # (bench get-app with local paths is broken).
