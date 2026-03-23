@@ -40,7 +40,7 @@ async function bootstrap(container, props) {
 
   app.mount(container)
 
-  const { userResource, allUsers } = usersStore()
+  const { userResource, allUsers } = usersStore(pinia)
   app.provide('$user', userResource)
   app.provide('$allUsers', allUsers)
   app.config.globalProperties.$user = userResource
@@ -49,10 +49,10 @@ async function bootstrap(container, props) {
   appInstance = app
 
   // Initialise shell store and apply initial shell props
-  shellStore = useShellStore()
-  if (props.lang)  shellStore.setLang(props.lang)
-  if (props.theme) shellStore.setTheme(props.theme)
-  if (props.role)  shellStore.setRole(props.role)
+  shellStore = useShellStore(pinia)
+  if (props.lang !== undefined)  shellStore.setLang(props.lang)
+  if (props.theme !== undefined) shellStore.setTheme(props.theme)
+  if (props.role !== undefined)  shellStore.setRole(props.role)
 }
 
 // ── MFE contract registration ─────────────────────────────────────────────
@@ -61,6 +61,11 @@ async function bootstrap(container, props) {
 if (typeof window.__MCAIT_MFE__ !== 'undefined') {
   window.__MCAIT_MFE__[MFE_ID] = {
     async mount(container, props) {
+      if (appInstance) {
+        appInstance.unmount()
+        appInstance = null
+        shellStore = null
+      }
       await bootstrap(container, props)
     },
     unmount(_container) {
@@ -72,9 +77,9 @@ if (typeof window.__MCAIT_MFE__ !== 'undefined') {
     },
     update(props) {
       if (!shellStore) return
-      if (props.lang)  shellStore.setLang(props.lang)
-      if (props.theme) shellStore.setTheme(props.theme)
-      if (props.role)  shellStore.setRole(props.role)
+      if (props.lang !== undefined)  shellStore.setLang(props.lang)
+      if (props.theme !== undefined) shellStore.setTheme(props.theme)
+      if (props.role !== undefined)  shellStore.setRole(props.role)
     },
   }
 } else {
