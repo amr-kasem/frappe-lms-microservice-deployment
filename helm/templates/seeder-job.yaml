@@ -1,0 +1,47 @@
+{{- if .Values.seeder.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "lms.fullname" . }}-seeder
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-weight": "0"
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: {{ include "lms.fullname" . }}-seeder
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-backend
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              until curl -fs http://{{ include "lms.fullname" . }}-backend:{{ .Values.backend.service.httpPort }}/api/method/ping; do
+                echo "Waiting for backend..."; sleep 5;
+              done
+      containers:
+        - name: seeder
+          image: {{ .Values.seeder.image }}
+          imagePullPolicy: {{ .Values.seeder.imagePullPolicy }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: REDIS_URL
+            {{- range $key, $value := .Values.backend.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+{{- end }}
