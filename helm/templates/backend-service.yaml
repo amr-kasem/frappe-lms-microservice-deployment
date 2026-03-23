@@ -1,0 +1,17 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lms.fullname" . }}-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "lms.fullname" . }}-backend
+  ports:
+    - name: http
+      port: {{ .Values.backend.service.httpPort }}
+      targetPort: 8000
+    - name: socketio
+      port: {{ .Values.backend.service.socketPort }}
+      targetPort: 9000
+{{- end }}

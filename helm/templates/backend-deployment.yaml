@@ -1,0 +1,74 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lms.fullname" . }}-backend
+  labels:
+    app: {{ include "lms.fullname" . }}-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "lms.fullname" . }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ include "lms.fullname" . }}-backend
+    spec:
+      initContainers:
+        - name: wait-for-mariadb
+          image: {{ .Values.mariadb.image }}
+          command:
+            - sh
+            - -c
+            - |
+              until mysqladmin ping -h {{ include "lms.fullname" . }}-mariadb -u root -p"$MARIADB_ROOT_PASSWORD" --silent; do
+                echo "Waiting for MariaDB..."; sleep 3;
+              done
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: MARIADB_ROOT_PASSWORD
+        - name: wait-for-redis
+          image: {{ .Values.redis.image }}
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h {{ include "lms.fullname" . }}-redis ping | grep -q PONG; do
+                echo "Waiting for Redis..."; sleep 2;
+              done
+      containers:
+        - name: backend
+          image: {{ .Values.backend.image }}
+          imagePullPolicy: {{ .Values.backend.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+            - name: socketio
+              containerPort: 9000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: REDIS_URL
+            {{- range $key, $value := .Values.backend.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /api/method/ping
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+{{- end }}
