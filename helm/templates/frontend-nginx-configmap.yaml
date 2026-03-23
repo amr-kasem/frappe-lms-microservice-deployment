@@ -26,9 +26,9 @@ data:
             add_header Cache-Control "no-cache";
         }
 
-        location ~* ^{{ include "lms.frontendPath" . }}/.*\.(js|css|png|jpg|svg|ico|woff2?)$ {
-            alias /usr/share/nginx/html/;
-            rewrite ^{{ include "lms.frontendPath" . }}/(.*)$ /$1 break;
+        location ~* ^{{ include "lms.frontendPath" . }}/(.+\.(js|css|png|jpg|svg|ico|woff2?))$ {
+            root /usr/share/nginx/html;
+            try_files /$1 =404;
             add_header Cache-Control "public, max-age=31536000, immutable";
         }
 

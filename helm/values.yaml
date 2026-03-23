@@ -47,6 +47,7 @@ seeder:
   enabled: true
   image: 10.93.209.250:5000/lms-seeder:latest
   imagePullPolicy: Always
+  curlImage: curlimages/curl:latest
 
 app:
   basePath: /services/lms/frontend/

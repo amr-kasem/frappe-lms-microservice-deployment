@@ -3,7 +3,7 @@
 {{- end -}}
 
 {{- define "lms.fullname" -}}
-{{ .Values.fullnameOverride }}
+{{ .Values.fullnameOverride | default .Release.Name }}
 {{- end -}}
 
 {{- define "lms.frontendPath" -}}
