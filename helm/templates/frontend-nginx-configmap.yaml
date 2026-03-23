@@ -1,0 +1,82 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lms.fullname" . }}-nginx
+data:
+  default.conf: |
+    upstream lms_backend {
+        server {{ include "lms.fullname" . }}-backend:{{ .Values.backend.service.httpPort }};
+    }
+
+    upstream lms_socketio {
+        server {{ include "lms.fullname" . }}-backend:{{ .Values.backend.service.socketPort }};
+    }
+
+    server {
+        listen 80;
+        server_name _;
+
+        client_max_body_size 50m;
+
+        # ── Frontend: /services/lms/frontend/* ──────────────────
+        location {{ include "lms.frontendPath" . }}/ {
+            alias /usr/share/nginx/html/;
+            try_files $uri $uri/ /index.html;
+            add_header Cache-Control "no-cache";
+        }
+
+        location ~* ^{{ include "lms.frontendPath" . }}/.*\.(js|css|png|jpg|svg|ico|woff2?)$ {
+            alias /usr/share/nginx/html/;
+            rewrite ^{{ include "lms.frontendPath" . }}/(.*)$ /$1 break;
+            add_header Cache-Control "public, max-age=31536000, immutable";
+        }
+
+        # ── Backend: /services/lms/backend/* ────────────────────
+        location {{ include "lms.backendPath" . }}/ {
+            rewrite ^{{ include "lms.backendPath" . }}/(.*)$ /api/$1 break;
+
+            proxy_set_header X-User-Id $http_x_forwarded_user;
+            proxy_hide_header Set-Cookie;
+
+            proxy_pass http://lms_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # ── Socket.IO: /services/lms/socket.io/* ────────────────
+        location {{ include "lms.socketPath" . }}/ {
+            rewrite ^{{ include "lms.socketPath" . }}/(.*)$ /socket.io/$1 break;
+
+            proxy_pass http://lms_socketio;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        # ── frappe-ui hardcoded /api/ calls ─────────────────────
+        location /api/ {
+            proxy_set_header X-User-Id $http_x_forwarded_user;
+            proxy_hide_header Set-Cookie;
+
+            proxy_pass http://lms_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            client_max_body_size 50m;
+        }
+    }
+{{- end }}

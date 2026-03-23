@@ -1,0 +1,13 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lms.fullname" . }}-config
+data:
+  config.json: |
+    {
+      "api_base_url": "",
+      "app_base_path": {{ .Values.app.basePath | quote }},
+      "socketio_url": {{ .Values.app.socketioUrl | quote }}
+    }
+{{- end }}
