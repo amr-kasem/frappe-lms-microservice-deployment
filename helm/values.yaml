@@ -1,0 +1,53 @@
+registry: 10.93.209.250:5000
+fullnameOverride: system-lms-frappe
+tenantNamespace: default
+
+frontend:
+  enabled: true
+  image: 10.93.209.250:5000/lms-frontend:latest
+  imagePullPolicy: Always
+  replicaCount: 1
+  service:
+    port: 80
+
+backend:
+  enabled: true
+  image: 10.93.209.250:5000/lms-backend:latest
+  imagePullPolicy: Always
+  replicaCount: 1
+  service:
+    httpPort: 8000
+    socketPort: 9000
+  env:
+    FRAPPE_SITE_NAME: lms.local
+
+mariadb:
+  enabled: true
+  image: 10.93.209.250:5000/library/mariadb:10.11
+  imagePullPolicy: IfNotPresent
+  rootPassword: changeme
+  db: lms
+  user: lms
+  password: lms
+  service:
+    port: 3306
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+redis:
+  enabled: true
+  image: 10.93.209.250:5000/library/redis:7-alpine
+  imagePullPolicy: IfNotPresent
+  service:
+    port: 6379
+
+seeder:
+  enabled: true
+  image: 10.93.209.250:5000/lms-seeder:latest
+  imagePullPolicy: Always
+
+app:
+  basePath: /services/lms/frontend/
+  socketioUrl: /services/lms/socket.io
