@@ -1,0 +1,68 @@
+{{- if .Values.mariadb.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lms.fullname" . }}-mariadb
+  labels:
+    app: {{ include "lms.fullname" . }}-mariadb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ include "lms.fullname" . }}-mariadb
+  template:
+    metadata:
+      labels:
+        app: {{ include "lms.fullname" . }}-mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: {{ .Values.mariadb.image }}
+          imagePullPolicy: {{ .Values.mariadb.imagePullPolicy }}
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: MARIADB_ROOT_PASSWORD
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: MARIADB_DATABASE
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: MARIADB_USER
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lms.fullname" . }}-db
+                  key: MARIADB_PASSWORD
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -h 127.0.0.1 -u root -p${MARIADB_ROOT_PASSWORD}"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mariadb-data
+          {{- if .Values.mariadb.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "lms.fullname" . }}-mariadb-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}
